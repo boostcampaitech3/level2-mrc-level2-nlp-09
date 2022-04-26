@@ -1,6 +1,5 @@
 python train.py \
 --output_dir ./models/train_dataset \
---do_train \
 --learning_rate 3e-5 \
 --per_device_train_batch_size 16 \
 --eval_steps 500 \
