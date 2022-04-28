@@ -1,0 +1,12 @@
+python inference.py \
+--do_predict \
+--output_dir ./models/test_dataset/ \
+--dataset_name ../data/test_dataset/ \
+--model_name_or_path ./models/train_dataset/ \
+--learning_rate 3e-5 \
+--per_device_train_batch_size 12 \
+--eval_steps 100 \
+--save_steps 100 \
+--logging_steps 100 \
+--evaluation_strategy "steps" \
+--num_train_epochs 2
