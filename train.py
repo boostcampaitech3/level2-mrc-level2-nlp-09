@@ -16,6 +16,7 @@ from transformers import (
     TrainingArguments,
     set_seed,
 )
+import wandb
 from utils_qa import check_no_error, postprocess_qa_predictions
 
 logger = logging.getLogger(__name__)
@@ -25,11 +26,18 @@ def main():
     # 가능한 arguments 들은 ./arguments.py 나 transformer package 안의 src/transformers/training_args.py 에서 확인 가능합니다.
     # --help flag 를 실행시켜서 확인할 수 도 있습니다.
 
+    project = "MRC-test"  # W&B Projects
+    entity_name = "level2-nlp-09-mrc"
+    display_name =  "mrc-test" # Model_name displayed in W&B Projects
+    wandb.init(project=project, entity=entity_name, name=display_name)
+
     parser = HfArgumentParser(
         (ModelArguments, DataTrainingArguments, TrainingArguments)
     )
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
     print(model_args.model_name_or_path)
+    training_args.report_to=["wandb"] # 리스트로 줘야 함...
+
 
     # [참고] argument를 manual하게 수정하고 싶은 경우에 아래와 같은 방식을 사용할 수 있습니다
     # training_args.per_device_train_batch_size = 4

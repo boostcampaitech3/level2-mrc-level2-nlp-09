@@ -163,6 +163,7 @@ cython_debug/
 # Our_Project
 outputs/
 models/
+wandb/
 # shell_script_files
 *.sh
 # PyCharm
