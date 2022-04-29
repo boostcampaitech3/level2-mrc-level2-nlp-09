@@ -164,6 +164,8 @@ cython_debug/
 outputs/
 models/
 wandb/
+test_record/
+
 # shell_script_files
 *.sh
 # PyCharm
