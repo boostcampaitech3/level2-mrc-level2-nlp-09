@@ -165,6 +165,7 @@ outputs/
 models/
 wandb/
 test_record/
+EDA/
 # shell_script_files
 *.sh
 # PyCharm
