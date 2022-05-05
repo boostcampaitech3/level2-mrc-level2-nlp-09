@@ -4,8 +4,8 @@ import os
 import pickle
 import time
 from contextlib import contextmanager
-from typing import List, NoReturn, Optional, Tuple, Union
-from rank_bm25 import BM25Okapi
+from typing import List, NoReturn, Optional, Text, Tuple, Union
+from rank_bm25 import BM25Okapi, BM25Plus
 import faiss
 import numpy as np
 import pandas as pd
@@ -120,7 +120,7 @@ class SparseRetrieval(Retrieval):
         """
         # Transform by vectorizer
         self.tfidfv = TfidfVectorizer(
-            tokenizer=self.tokenize_fn, ngram_range=(1, 2), max_features=50000,
+            tokenizer=self.tokenize_fn, ngram_range=(2, 2)
         )
 
         self.p_embedding = None  # get_sparse_embedding()로 생성합니다
@@ -381,11 +381,11 @@ class BM25(Retrieval):
         self.bm25 = None
     def get_sparse_embedding(self):
         with timer("bm25 building"):
-            self.bm25 = BM25Okapi(self.contexts, tokenizer=self.tokenize_fn) 
+            self.bm25 = BM25Okapi(self.contexts, tokenizer=self.bigram_tokenize) 
         
     def get_relevant_doc(self, query: str, k: Optional[int] = 1) -> Tuple[List, List]:
         with timer("transform"):
-            tokenized_query = self.tokenize_fn(query)
+            tokenized_query = self.bigram_tokenize(query)
         with timer("query ex search"):
             result = self.bm25.get_scores(tokenized_query)
         sorted_result = np.argsort(result)[::-1]
@@ -397,7 +397,7 @@ class BM25(Retrieval):
         self, queries: List, k: Optional[int] = 1
     ) -> Tuple[List, List]:
         with timer("transform"):
-            tokenized_queris = [self.tokenize_fn(query) for query in queries]
+            tokenized_queris = [self.bigram_tokenize(query) for query in queries]
         with timer("query ex search"):
             result = np.array([self.bm25.get_scores(tokenized_query) for tokenized_query in tqdm(tokenized_queris)])
         doc_scores = []
@@ -408,6 +408,14 @@ class BM25(Retrieval):
             doc_indices.append(sorted_result.tolist()[:k])
         return doc_scores, doc_indices
 
+    def bigram_tokenize(self, text):
+        original_tokens = self.tokenize_fn(text)
+        n_original_tokens = len(original_tokens)
+        tokens = []
+        for n in range(1, min(2 + 1, n_original_tokens + 1)):
+            for i in range(n_original_tokens - n + 1):
+                tokens.append(" ".join(original_tokens[i : i + n]))
+        return tokens
 if __name__ == "__main__":
 
     import argparse
@@ -445,7 +453,7 @@ if __name__ == "__main__":
 
     tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path, use_fast=False,)
 
-    retriever = SparseRetrieval(
+    retriever = BM25(
         tokenize_fn=tokenizer.tokenize,
         data_path=args.data_path,
         context_path=args.context_path,
