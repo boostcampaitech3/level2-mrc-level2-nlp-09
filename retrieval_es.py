@@ -12,8 +12,7 @@ import pandas as pd
 from datasets import Dataset, concatenate_datasets, load_from_disk
 from sklearn.feature_extraction.text import TfidfVectorizer
 from tqdm.auto import tqdm
-from transformers import AutoTokenizer
-from elasticsearch import Elasticsearch
+# from elasticsearch import Elasticsearch
 from elastic_setting import *
 
 @contextmanager
@@ -23,8 +22,8 @@ def timer(name):
     print(f"[{name}] done in {time.time() - t0:.3f} s")
 
 class ElasticRetrieval:
-    def __init__(self):
-        self.es, self.index_name = es_setting(index_name="origin-wiki")    
+    def __init__(self, INDEX_NAME):
+        self.es, self.index_name = es_setting(index_name=INDEX_NAME)    
 
     def retrieve(
         self, query_or_dataset: Union[str, Dataset], topk: Optional[int] = 1
@@ -33,12 +32,10 @@ class ElasticRetrieval:
             doc_scores, doc_indices, docs = self.get_relevant_doc(query_or_dataset, k=topk)
             print("[Search query]\n", query_or_dataset, "\n")
 
-            # retrieved_context = []
             for i in range(min(topk, len(docs))):
                 print(f"Top-{i+1} passage with score {doc_scores[i]:4f}")
                 print(doc_indices[i])
                 print(docs[i]['_source']['document_text'])
-                # retrieved_context.append(docs[i]['_source']['document_text'])
 
             return (doc_scores, [doc_indices[i] for i in range(topk)])
 
@@ -49,11 +46,7 @@ class ElasticRetrieval:
                 doc_scores, doc_indices, docs = self.get_relevant_doc_bulk(
                     query_or_dataset["question"], k=topk
                 )
-            # print('bulk docs type: ', type(docs))
-            # print('bulk docs[0] type: ', type(docs[0]))
-            # print('bulk docs: ', docs)
-            # print('len docs: ', len(docs))
-            # print('len docs[0]: ', len(docs[0]))
+
             for idx, example in enumerate(tqdm(query_or_dataset, desc="Sparse retrieval with Elasticsearch: ")):
                 retrieved_context = []
                 for i in range(min(topk, len(docs[idx]))):
@@ -65,7 +58,7 @@ class ElasticRetrieval:
                     "id": example["id"],
                     # Retrieve한 Passage의 id, context를 반환합니다.
                     "context_id": doc_indices[idx],
-                    "context": retrieved_context
+                    "context": " ".join(retrieved_context),
                 }
                 if "context" in example.keys() and "answers" in example.keys():
                     # validation 데이터를 사용하면 ground_truth context와 answer도 반환합니다.
@@ -147,12 +140,11 @@ if __name__ == "__main__":
     print(len(org_dataset["train"]),len(org_dataset["validation"]))
 
 
-    tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path, use_fast=False,)
-    retriever = ElasticRetrieval()
+    INDEX_NAME = "origin-wiki"
+    retriever = ElasticRetrieval(INDEX_NAME)
 
     query = "대통령을 포함한 미국의 행정부 견제권을 갖는 국가 기관은?"
 
-    # retriever.get_sparse_embedding()
     if args.use_faiss:
 
         # test single query
@@ -168,7 +160,7 @@ if __name__ == "__main__":
 
     else:
         with timer("bulk query by exhaustive search"):
-            df = retriever.retrieve(full_ds, topk=10)
+            df = retriever.retrieve(full_ds, topk=1)
             df["correct"] = [original_context in context for original_context,context in zip(df["original_context"],df["context"])]
             print(
                 "correct retrieval result by exhaustive search",
