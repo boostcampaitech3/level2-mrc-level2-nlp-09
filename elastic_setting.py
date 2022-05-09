@@ -1,6 +1,7 @@
 import json
 import pprint
 import warnings
+import re
 from tqdm import tqdm
 from elasticsearch import Elasticsearch
 
@@ -28,22 +29,34 @@ def set_index(es, index_name, setting_path):
     es.indices.create(index=index_name, body=setting)
     print("Index creation has been completed")
 
+# 삽입할 데이터 전처리
+def preprocess(text):
+    text = re.sub(r"\n", " ", text)
+    text = re.sub(r"\\n", " ", text)
+    text = re.sub(r"#", " ", text)
+    text = re.sub(r"[^A-Za-z0-9가-힣.?!,()~‘’“”"":%&《》〈〉''㈜·\-\'+\s一-龥サマーン]", "", text)  # サマーン 는 predictions.json에 있었음
+    text = re.sub(r"\s+", " ", text).strip()  # 두 개 이상의 연속된 공백을 하나로 치환
+    # text = re.sub(r"[^A-Za-z0-9가-힣.?!,()~‘’“”"":%&《》〈〉''㈜·\-\'+\s一-龥]", "", text)
+    
+    return text
+
 # 위키피디아 데이터 로드
 def load_data(dataset_path):
     # dataset_path = "../data/wikipedia_documents.json"
     with open(dataset_path, "r") as f:
         wiki = json.load(f)
 
-    wiki_contexts = list(dict.fromkeys([v["text"] for v in wiki.values()]))
-    wiki_articles = [
-        {"document_text": wiki_contexts[i]} for i in range(len(wiki_contexts))
+    wiki_texts = list(dict.fromkeys([v["text"] for v in wiki.values()]))
+    wiki_texts = [preprocess(text) for text in wiki_texts]
+    wiki_corpus = [
+        {"document_text": wiki_texts[i]} for i in range(len(wiki_texts))
     ]
-    return wiki_articles
+    return wiki_corpus
 
 # 인덱스에 데이터 삽입
 def insert_data(es, index_name, dataset_path):
-    wiki_articles = load_data(dataset_path)
-    for i, text in enumerate(tqdm(wiki_articles)):
+    wiki_corpus = load_data(dataset_path)
+    for i, text in enumerate(tqdm(wiki_corpus)):
         try:
             es.index(index=index_name, id=i, body=text)
         except:
@@ -76,7 +89,9 @@ def es_search(es, index_name, question, topk):
     return res
 
 if __name__ == "__main__":
-    INDEX_NAME = "origin-wiki"
+    # INDEX_NAME은 새로운 설정값/데이터를 인덱스에 삽입할 때 변경해주세요.
+    # INDEX_NAME = "origin-wiki"
+    INDEX_NAME = "wiki-filter1"
     setting_path = "./setting.json"
     dataset_path="../data/wikipedia_documents.json"
 
