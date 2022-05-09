@@ -5,7 +5,7 @@ import pickle
 import time
 from contextlib import contextmanager
 from typing import List, NoReturn, Optional, Tuple, Union
-from rank_bm25 import BM25Okapi
+from rank_bm25 import BM25Okapi, BM25Plus
 import faiss
 import numpy as np
 import pandas as pd
@@ -37,11 +37,23 @@ class Retrieval:
         print(f"Lengths of unique contexts : {len(self.contexts)}")
         self.ids = list(range(len(self.contexts)))
         self.tokenize_fn = tokenize_fn
+        self.retrieve_path = None
 
     def get_sparse_embedding(self):
         pass
+
+    def save_retrieve_result(self, doc_scores, indices):
+        min_score = np.min(doc_scores)
+        max_score = np.max(doc_scores)
+        doc_scores = np.divide(np.subtract(doc_scores,min_score), max_score)
+        with open(self.retrieve_path,"wb") as f:
+            pickle.dump({
+                "indices": indices,
+                "scores": doc_scores
+            }, f)
+
     def retrieve(
-        self, query_or_dataset: Union[str, Dataset], topk: Optional[int] = 1
+        self, query_or_dataset: Union[str, Dataset], topk: Optional[int] = 1, save_result = False
     ) -> Union[Tuple[List, List], pd.DataFrame]:
         if isinstance(query_or_dataset, str):
             doc_scores, doc_indices = self.get_relevant_doc(query_or_dataset, k=topk)
@@ -61,6 +73,8 @@ class Retrieval:
                 doc_scores, doc_indices = self.get_relevant_doc_bulk(
                     query_or_dataset["question"], k=topk
                 )
+            if save_result:
+                self.save_retrieve_result(doc_scores, doc_indices)
             for idx, example in enumerate(
                 tqdm(query_or_dataset, desc="Sparse retrieval: ")
             ):
@@ -122,7 +136,7 @@ class SparseRetrieval(Retrieval):
         self.tfidfv = TfidfVectorizer(
             tokenizer=self.tokenize_fn, ngram_range=(1, 2), max_features=50000,
         )
-
+        self.retrieve_path = "/opt/ml/input/data/sparse_ensemble_pickles/tfidf_results.pickle"
         self.p_embedding = None  # get_sparse_embedding()로 생성합니다
         self.indexer = None  # build_faiss()로 생성합니다.
 
@@ -157,6 +171,7 @@ class SparseRetrieval(Retrieval):
                 pickle.dump(self.tfidfv, file)
             print("Embedding pickle saved.")
 
+    
     def build_faiss(self, num_clusters=64) -> NoReturn:
 
         """
@@ -379,6 +394,8 @@ class BM25(Retrieval):
     ):
         super().__init__(tokenize_fn, data_path, context_path)
         self.bm25 = None
+        self.retrieve_path = "/opt/ml/input/data/sparse_ensemble_pickles/bm25_plus_results.pickle"
+    
     def get_sparse_embedding(self):
         with timer("bm25 building"):
             self.bm25 = BM25Okapi(self.contexts, tokenizer=self.tokenize_fn) 
