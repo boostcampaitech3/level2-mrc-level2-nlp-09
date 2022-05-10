@@ -20,8 +20,7 @@ from datasets import (
     load_from_disk,
     load_metric,
 )
-from retrieval import BM25, SparseRetrieval
-from retrieval_es import ElasticRetrieval
+from retrieval import BM25, SparseRetrieval, ElasticRetrieval
 from trainer_qa import QuestionAnsweringTrainer
 from transformers import (
     AutoConfig,
@@ -106,18 +105,24 @@ def run_sparse_retrieval(
     data_path: str = "../data",
     context_path: str = "wikipedia_documents.json",
 ) -> DatasetDict:
-
     # Query에 맞는 Passage들을 Retrieval 합니다.
-    # 기존 BM25 사용하는 경우
-    # retriever = BM25(
-    #     tokenize_fn=tokenize_fn, data_path=data_path, context_path=context_path
-    # )
-    # retriever.get_sparse_embedding()
-
 
     # Elasticsearch 사용하는 경우
-    INDEX_NAME = "wiki-filter1"
-    retriever = ElasticRetrieval(INDEX_NAME)
+    if data_args.elastic:
+        retriever = ElasticRetrieval(data_args.index_name)
+    else:
+        # BM25 사용하는 경우
+        if data_args.bm25:
+            retriever = BM25(
+                tokenize_fn=tokenize_fn, data_path=data_path, context_path=context_path
+            )
+        # TF-IDF 사용하는 경우
+        else:
+            retriever = SparseRetrieval(
+                tokenize_fn=tokenize_fn, data_path=data_path, context_path=context_path
+            )
+        retriever.get_sparse_embedding()
+
 
     if data_args.use_faiss:
         retriever.build_faiss(num_clusters=data_args.num_clusters)
