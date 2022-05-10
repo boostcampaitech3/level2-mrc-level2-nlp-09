@@ -12,7 +12,6 @@ import pandas as pd
 from datasets import Dataset, concatenate_datasets, load_from_disk
 from sklearn.feature_extraction.text import TfidfVectorizer
 from tqdm.auto import tqdm
-# from elasticsearch import Elasticsearch
 from elastic_setting import *
 
 @contextmanager
@@ -23,7 +22,7 @@ def timer(name):
 
 class ElasticRetrieval:
     def __init__(self, INDEX_NAME):
-        self.es, self.index_name = es_setting(index_name=INDEX_NAME)    
+        self.es, self.index_name = es_setting(index_name=INDEX_NAME) 
 
     def retrieve(
         self, query_or_dataset: Union[str, Dataset], topk: Optional[int] = 1
@@ -48,6 +47,7 @@ class ElasticRetrieval:
                 )
 
             for idx, example in enumerate(tqdm(query_or_dataset, desc="Sparse retrieval with Elasticsearch: ")):
+                # retrieved_context 구하는 부분 수정
                 retrieved_context = []
                 for i in range(min(topk, len(docs[idx]))):
                     retrieved_context.append(docs[idx][i]['_source']['document_text'])
@@ -58,7 +58,7 @@ class ElasticRetrieval:
                     "id": example["id"],
                     # Retrieve한 Passage의 id, context를 반환합니다.
                     "context_id": doc_indices[idx],
-                    "context": " ".join(retrieved_context),
+                    "context": " ".join(retrieved_context),  # 수정
                 }
                 if "context" in example.keys() and "answers" in example.keys():
                     # validation 데이터를 사용하면 ground_truth context와 answer도 반환합니다.
@@ -110,20 +110,9 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="")
-    parser.add_argument(
-        "--dataset_name", default="../data/train_dataset", type=str, help=""
-    )
-    parser.add_argument(
-        "--model_name_or_path",
-        default="klue/roberta-large",
-        type=str,
-        help="",
-    )
-    parser.add_argument("--data_path", default="../data", type=str, help="")
-    parser.add_argument(
-        "--context_path", default="wikipedia_documents.json", type=str, help=""
-    )
+    parser.add_argument("--dataset_name", default="../data/train_dataset", type=str, help="")
     parser.add_argument("--use_faiss", default=False, type=bool, help="")
+    parser.add_argument("--index_name", default="origin-wiki", type=str, help="테스트할 index name을 설정해주세요")
 
     args = parser.parse_args()
 
@@ -140,9 +129,7 @@ if __name__ == "__main__":
     print(len(org_dataset["train"]),len(org_dataset["validation"]))
 
 
-    INDEX_NAME = "origin-wiki"
-    retriever = ElasticRetrieval(INDEX_NAME)
-
+    retriever = ElasticRetrieval(args.index_name)
     query = "대통령을 포함한 미국의 행정부 견제권을 갖는 국가 기관은?"
 
     if args.use_faiss:

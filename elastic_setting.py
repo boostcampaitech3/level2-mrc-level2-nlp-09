@@ -2,6 +2,7 @@ import json
 import pprint
 import warnings
 import re
+import argparse
 from tqdm import tqdm
 from elasticsearch import Elasticsearch
 
@@ -10,7 +11,7 @@ warnings.filterwarnings('ignore')
 
 # elasticsearch 서버 세팅 
 def es_setting(index_name="origin-wiki"):
-    es = Elasticsearch('http://localhost:9200', tineout=30, max_retries=10, retry_on_timeout=True)
+    es = Elasticsearch('http://localhost:9200', timeout=30, max_retries=10, retry_on_timeout=True)
     print("Ping Elasticsearch :", es.ping())
     # print('Elastic search info:')
     # print(es.info())
@@ -67,14 +68,13 @@ def insert_data(es, index_name, dataset_path):
     print("@@@@@@@ 데이터 삽입 완료 @@@@@@@")
 
 # 삽입한 데이터 확인
-def check_data(es, index_name, doc_id=1):
+def check_data(es, index_name, doc_id=0):
     print('샘플 데이터:')
     doc = es.get(index=index_name, id=doc_id)
     pprint.pprint(doc)
 
-
 def es_search(es, index_name, question, topk):
-    # question = "주기표는 무엇인가?"
+    # question = "대통령을 포함한 미국의 행정부 견제권을 갖는 국가 기관은?"
     query = {
         "query": {
             "bool": {
@@ -88,16 +88,10 @@ def es_search(es, index_name, question, topk):
     res = es.search(index=index_name, body=query, size=topk)
     return res
 
-if __name__ == "__main__":
-    # INDEX_NAME은 새로운 설정값/데이터를 인덱스에 삽입할 때 변경해주세요.
-    # INDEX_NAME = "origin-wiki"
-    INDEX_NAME = "wiki-filter1"
-    setting_path = "./setting.json"
-    dataset_path="../data/wikipedia_documents.json"
-
-    es, index_name = es_setting(index_name=INDEX_NAME)
-    set_index(es, index_name, setting_path)  # 이미 인덱스가 존재하면 주석처리하기
-    insert_data(es, index_name, dataset_path)  # 이미 인덱스 안에 데이터가 존재하면 주석처리하기
+def main(args):
+    es, index_name = es_setting(index_name=args.index_name)
+    set_index(es, index_name, args.setting_path)  # 이미 인덱스가 존재하면 주석처리
+    insert_data(es, index_name, args.dataset_path)  # 이미 인덱스 안에 데이터가 존재하면 주석처리
     check_data(es, index_name, doc_id=1)
 
 
@@ -110,3 +104,13 @@ if __name__ == "__main__":
     print('\n=========== RETRIEVE SCORES ==========\n')
     for hit in res['hits']['hits']:
         print("Doc ID: %3r  Score: %5.2f" % (hit['_id'], hit['_score']))
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="")
+    parser.add_argument("--setting_path", default="./setting.json", type=str, help="생성할 index의 setting.json 경로를 설정해주세요")
+    parser.add_argument("--dataset_path", default="../data/wikipedia_documents.json", type=str, help="삽입할 데이터의 경로를 설정해주세요")
+    parser.add_argument("--index_name", default="origin-wiki", type=str, help="테스트할 index name을 설정해주세요")
+
+    args = parser.parse_args()
+    main(args)
