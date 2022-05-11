@@ -8,6 +8,10 @@ from elasticsearch import Elasticsearch
 
 warnings.filterwarnings('ignore')
 
+"""
+Elasticsearch를 사용하기 전 처음에 한 번 실행시켜주세요!!!
+데이터 index 설정값을 바꾸거나 새로운 데이터를 삽입할 때는 index_name을 변경해서 실행시켜주세요!!!
+"""
 
 # elasticsearch 서버 세팅 
 def es_setting(index_name="origin-wiki"):
@@ -21,7 +25,7 @@ def es_setting(index_name="origin-wiki"):
 # 인덱스 생성
 def set_index(es, index_name, setting_path):
     # 이미 인덱스가 존재하는 경우 삭제
-    if es.indices.exists(index_name):
+    if es.indices.exists(index=index_name):
         print("Index already exists. Creating a new one after deleting it...")
         es.indices.delete(index=index_name)
 
