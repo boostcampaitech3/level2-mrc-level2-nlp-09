@@ -166,6 +166,7 @@ models/
 wandb/
 test_record/
 EDA/
+elasticsearch/
 # shell_script_files
 *.sh
 # PyCharm
