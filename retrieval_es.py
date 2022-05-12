@@ -27,7 +27,7 @@ class ElasticRetrieval:
         self, query_or_dataset: Union[str, Dataset], topk: Optional[int] = 1
     ) -> Union[Tuple[List, List], pd.DataFrame]:
         if isinstance(query_or_dataset, str):
-            doc_scores, doc_indices, docs = self.get_relevant_doc(query_or_dataset, k=topk,)
+            doc_scores, doc_indices, docs = self.get_relevant_doc(query_or_dataset, k=topk)
             print("[Search query]\n", query_or_dataset, "\n")
 
             for i in range(min(topk, len(docs))):
@@ -42,7 +42,7 @@ class ElasticRetrieval:
             total = []
             with timer("query exhaustive search"):
                 doc_scores, doc_indices, docs = self.get_relevant_doc_bulk(
-                    query_or_dataset["question"], k=topk,
+                    query_or_dataset["question"], k=topk
                 )
             
             for idx, example in enumerate(tqdm(query_or_dataset, desc="Sparse retrieval with Elasticsearch: ")):
