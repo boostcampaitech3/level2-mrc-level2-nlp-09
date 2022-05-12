@@ -53,7 +53,7 @@ class Retrieval:
             }, f)
 
     def retrieve(
-        self, query_or_dataset: Union[str, Dataset], topk: Optional[int] = 1, save_result = False
+        self, query_or_dataset: Union[str, Dataset],  retrieved_path= None, topk: Optional[int] = 1, save_result = False
     ) -> Union[Tuple[List, List], pd.DataFrame]:
         if isinstance(query_or_dataset, str):
             doc_scores, doc_indices = self.get_relevant_doc(query_or_dataset, k=topk)
@@ -69,12 +69,22 @@ class Retrieval:
 
             # Retrieve한 Passage를 pd.DataFrame으로 반환합니다.
             total = []
-            with timer("query exhaustive search"):
-                doc_scores, doc_indices = self.get_relevant_doc_bulk(
-                    query_or_dataset["question"], k=topk
-                )
+            if retrieved_path != None:
+                with open(retrieved_path,"rb") as f:
+                    rerank_info = pickle.load(f)
+                    doc_indices =[]
+                    doc_scores = []
+                    for reinfo in rerank_info:
+                        doc_indices.append([inf[0] for inf in reinfo])
+                        doc_scores.append([inf[1] for inf in reinfo])
+            else:
+                with timer("query exhaustive search"):
+                    doc_scores, doc_indices = self.get_relevant_doc_bulk(
+                        query_or_dataset["question"], k=topk
+                    )
             if save_result:
                 self.save_retrieve_result(doc_scores, doc_indices)
+                    
             for idx, example in enumerate(
                 tqdm(query_or_dataset, desc="Sparse retrieval: ")
             ):
@@ -134,7 +144,7 @@ class SparseRetrieval(Retrieval):
         """
         # Transform by vectorizer
         self.tfidfv = TfidfVectorizer(
-            tokenizer=self.tokenize_fn, ngram_range=(1, 2), max_features=50000,
+            tokenizer=self.tokenize_fn, ngram_range=(1, 2)
         )
         self.retrieve_path = "/opt/ml/input/data/sparse_ensemble_pickles/tfidf_results.pickle"
         self.p_embedding = None  # get_sparse_embedding()로 생성합니다
@@ -431,7 +441,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="")
     parser.add_argument(
-        "--dataset_name", default="../data/train_dataset", type=str, help=""
+        "--dataset_name", default="../data/test_dataset", type=str, help=""
     )
     parser.add_argument(
         "--model_name_or_path",
@@ -449,15 +459,15 @@ if __name__ == "__main__":
 
     # Test sparse
     org_dataset = load_from_disk(args.dataset_name)
-    full_ds = concatenate_datasets(
-        [
-            org_dataset["train"].flatten_indices(),
-            org_dataset["validation"].flatten_indices(),
-        ]
-    )  # train dev 를 합친 4192 개 질문에 대해 모두 테스트
+    # full_ds = concatenate_datasets(
+    #     [
+    #         org_dataset["train"].flatten_indices(),
+    #         org_dataset["validation"].flatten_indices(),
+    #     ]
+    # )  # train dev 를 합친 4192 개 질문에 대해 모두 테스트
+    full_ds = org_dataset["validation"]
     print("*" * 40, "query dataset", "*" * 40)
     print(full_ds)
-    print(len(org_dataset["train"]),len(org_dataset["validation"]))
     from transformers import AutoTokenizer
 
     tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path, use_fast=False,)
@@ -485,7 +495,7 @@ if __name__ == "__main__":
 
     else:
         with timer("bulk query by exhaustive search"):
-            df = retriever.retrieve(full_ds, topk= 40)
+            df = retriever.retrieve(full_ds, topk= 40, save_result= True)
             df["correct"] = [original_context in context for original_context,context in zip(df["original_context"],df["context"])]
             print(
                 "correct retrieval result by exhaustive search",
