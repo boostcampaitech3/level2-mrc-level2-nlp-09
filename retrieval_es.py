@@ -27,7 +27,7 @@ class ElasticRetrieval:
         self, query_or_dataset: Union[str, Dataset], topk: Optional[int] = 1
     ) -> Union[Tuple[List, List], pd.DataFrame]:
         if isinstance(query_or_dataset, str):
-            doc_scores, doc_indices, docs = self.get_relevant_doc(query_or_dataset, k=topk)
+            doc_scores, doc_indices, docs = self.get_relevant_doc(query_or_dataset, k=topk,)
             print("[Search query]\n", query_or_dataset, "\n")
 
             for i in range(min(topk, len(docs))):
@@ -42,9 +42,9 @@ class ElasticRetrieval:
             total = []
             with timer("query exhaustive search"):
                 doc_scores, doc_indices, docs = self.get_relevant_doc_bulk(
-                    query_or_dataset["question"], k=topk
+                    query_or_dataset["question"], k=topk,
                 )
-
+            
             for idx, example in enumerate(tqdm(query_or_dataset, desc="Sparse retrieval with Elasticsearch: ")):
                 # retrieved_context 구하는 부분 수정
                 retrieved_context = []
@@ -66,6 +66,7 @@ class ElasticRetrieval:
                 total.append(tmp)
 
             cqas = pd.DataFrame(total)
+
             return cqas
     
     
@@ -127,6 +128,18 @@ if __name__ == "__main__":
     print(full_ds)
     print(len(org_dataset["train"]),len(org_dataset["validation"]))
 
+    # 테스트 데이터 full_ds에도 동일하게 전처리
+    post_context = [preprocess(text) for text in full_ds["context"]]
+    post_question = [preprocess(text) for text in full_ds["question"]]
+
+    # 기존의 전처리 이전 컬럼 삭제
+    full_ds = full_ds.remove_columns("context")
+    full_ds = full_ds.remove_columns("question")
+
+    # 동일한 이름의 컬럼에 전처리 이후 데이터 추가
+    full_ds = full_ds.add_column("context", post_context)
+    full_ds = full_ds.add_column("question", post_question)
+
 
     retriever = ElasticRetrieval(args.index_name)
     query = "대통령을 포함한 미국의 행정부 견제권을 갖는 국가 기관은?"
@@ -146,7 +159,7 @@ if __name__ == "__main__":
 
     else:
         with timer("bulk query by exhaustive search"):
-            df = retriever.retrieve(full_ds, topk=20)
+            df = retriever.retrieve(full_ds, topk=40)
             df["correct"] = [original_context in context for original_context,context in zip(df["original_context"],df["context"])]
             print(
                 "correct retrieval result by exhaustive search",
