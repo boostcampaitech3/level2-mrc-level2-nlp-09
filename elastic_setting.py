@@ -4,6 +4,7 @@ import warnings
 import re
 import argparse
 from tqdm import tqdm
+import pandas as pd
 from elasticsearch import Elasticsearch
 
 warnings.filterwarnings('ignore')
@@ -79,11 +80,25 @@ def check_data(es, index_name, doc_id=0):
 
 def es_search(es, index_name, question, topk):
     # question = "대통령을 포함한 미국의 행정부 견제권을 갖는 국가 기관은?"
+    tag_df = pd.read_csv("./elasticsearch/test_tagging.csv")
     query = {
         "query": {
             "bool": {
                 "must": [
                     {"match": {"document_text": question}}
+                ]
+            }
+        }
+    }
+    # ner tagging 적용 시 query dsl (인퍼런스 이후 동일한 결과를 반환해 조금 이상함)
+    query2 = {
+        "query": {
+            "bool": {
+                "must": [
+                    {"match": {"document_text": question}}
+                ],
+                "should": [
+                    {"match": {"document_text": " ".join([tag[0] for tag in tag_df["ner_tagging"] if tag[1] != "O"])}}
                 ]
             }
         }
