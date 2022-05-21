@@ -16,6 +16,7 @@ from transformers import (
     TrainingArguments,
     set_seed,
 )
+import wandb
 from utils_qa import check_no_error, postprocess_qa_predictions
 
 logger = logging.getLogger(__name__)
@@ -25,11 +26,18 @@ def main():
     # 가능한 arguments 들은 ./arguments.py 나 transformer package 안의 src/transformers/training_args.py 에서 확인 가능합니다.
     # --help flag 를 실행시켜서 확인할 수 도 있습니다.
 
+    project = "TI-test-val"  # W&B Projects
+    entity_name = "level2-nlp-09-mrc"
+    display_name =  "mrc-test" # Model_name displayed in W&B Projects
+    wandb.init(project=project, entity=entity_name, name=display_name)
+
     parser = HfArgumentParser(
         (ModelArguments, DataTrainingArguments, TrainingArguments)
     )
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
     print(model_args.model_name_or_path)
+    training_args.report_to=["wandb"] # 리스트로 줘야 함...
+
 
     # [참고] argument를 manual하게 수정하고 싶은 경우에 아래와 같은 방식을 사용할 수 있습니다
     # training_args.per_device_train_batch_size = 4
@@ -139,7 +147,10 @@ def run_mrc(
         # token의 캐릭터 단위 position를 찾을 수 있도록 offset mapping을 사용합니다.
         # start_positions과 end_positions을 찾는데 도움을 줄 수 있습니다.
         offset_mapping = tokenized_examples.pop("offset_mapping")
+        tokenized_examples = set_tokenized_examples_start_end_pos(tokenized_examples, sample_mapping, offset_mapping, examples)
+        return tokenized_examples
 
+    def set_tokenized_examples_start_end_pos(tokenized_examples, sample_mapping, offset_mapping, examples):
         # 데이터셋에 "start position", "enc position" label을 부여합니다.
         tokenized_examples["start_positions"] = []
         tokenized_examples["end_positions"] = []
@@ -193,8 +204,8 @@ def run_mrc(
                     while offsets[token_end_index][1] >= end_char:
                         token_end_index -= 1
                     tokenized_examples["end_positions"].append(token_end_index + 1)
-
         return tokenized_examples
+
 
     if training_args.do_train:
         if "train" not in datasets:
@@ -228,7 +239,8 @@ def run_mrc(
 
         # 길이가 긴 context가 등장할 경우 truncate를 진행해야하므로, 해당 데이터셋을 찾을 수 있도록 mapping 가능한 값이 필요합니다.
         sample_mapping = tokenized_examples.pop("overflow_to_sample_mapping")
-
+        offset_mapping = tokenized_examples["offset_mapping"]
+        tokenized_examples = set_tokenized_examples_start_end_pos(tokenized_examples, sample_mapping, offset_mapping, examples)
         # evaluation을 위해, prediction을 context의 substring으로 변환해야합니다.
         # corresponding example_id를 유지하고 offset mappings을 저장해야합니다.
         tokenized_examples["example_id"] = []

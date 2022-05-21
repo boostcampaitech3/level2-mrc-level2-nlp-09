@@ -1,0 +1,11 @@
+python train.py \
+--output_dir ./models/train_dataset \
+--learning_rate 3e-5 \
+--per_device_train_batch_size 16 \
+--eval_steps 500 \
+--do_train \
+--save_steps 500 \
+--logging_steps 500 \
+--do_eval \
+--evaluation_strategy "steps" \
+--num_train_epochs 3 
