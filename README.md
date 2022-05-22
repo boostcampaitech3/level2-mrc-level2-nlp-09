@@ -3,7 +3,7 @@
 > 
 > 질문에 관련된 문서를 찾는 Retriever와 찾아온 문서에서 질문에 대한 정답을 찾는 Reader로 구성됩니다. 
 
-## [Wrap-up report](https://www.notion.so/MRC-Wrap-up-report-367aeebe548448ab8d157fd86aa0196d)
+## [Wrap-up report](https://colorful-bug-b35.notion.site/MRC-Wrap-up-report-367aeebe548448ab8d157fd86aa0196d)
 
 ## [Solution Presentation](https://github.com/boostcampaitech3/level2-mrc-level2-nlp-09/blob/develop/assets/MRC_%E1%84%89%E1%85%A9%E1%86%AF%E1%84%85%E1%85%AE%E1%84%89%E1%85%A7%E1%86%AB%E1%84%87%E1%85%A1%E1%86%AF%E1%84%91%E1%85%AD_NLP9%E1%84%8C%E1%85%A9.pdf)
 
@@ -18,10 +18,9 @@
 | --- | --- |
 | 김태일 | 실험 세팅, BM25, rerank, DPR 구현 및 실험 |
 | 문찬국 | 협업 툴 관리, 실험 세팅, KorQuAD Fine-tuning, Curriculum Learning, Hyperparameter Tuning |
-| 이재학 | EDA, Scheduler 실험, Data Length 관련 실험, Inference 후처리, Ensemble |
+| 이재학 | EDA, Scheduler 실험, 성능 검증 코드 제작, Data Length 관련 실험, Inference 후처리, Ensemble |
 | 하성진 | Pre-trained 모델 실험, KorQuAD Pre-training  |
 | 한나연 | EDA, Pre-trained 모델 실험, Elasticsearch, NER tagging |
- 
 
 ## Score
 ▶️ Public Leaderboard: 1st / 11
@@ -50,6 +49,17 @@
 data에 대한 argument 는 `arguments.py` 의 `DataTrainingArguments` 에서 확인 가능합니다. 
 
 ![데이터 분포](./assets/dataset.png)
+
+## Evalutaion Metric
+EM(Exact Match)와 F1 score 두 개의 평가지표를 사용하지만, EM기준으로 리더보드 등수가 반영되고, F1은 참고용으로만 활용됩니다.
+
+`Exact Match`: 모델의 예측과 실제 답이 정확하게 일치할 때만 점수가 주어지고, 띄어쓰기나 문장부호를 제외한 후 정답에 대해서만 일치하는지 확인합니다. 또한 답이 하나가 아닐 수 있는데, 이런 경우는 하나라도 일치하면 정답으로 간주합니다.
+
+![EM](https://user-images.githubusercontent.com/46811558/169698749-b5c5cec0-1ae8-4260-a406-01a805268604.png)
+
+`F1 Score`: EM과 다르게 부분 점수를 제공합니다. 예를 들어, 정답은 "Barack Obama"지만 예측이 "Obama"일 때, EM의 경우 0점을 받겠지만 F1 Score는 겹치는 단어도 있는 것을 고려해 부분 점수를 받을 수 있습니다.
+
+![F1](https://user-images.githubusercontent.com/46811558/169698799-e6000a79-6dd0-435f-9a95-5293bdbc6953.png)
 
 ## Usage
 
