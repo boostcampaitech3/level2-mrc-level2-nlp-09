@@ -8,7 +8,8 @@
 ## [Solution Presentation](https://github.com/boostcampaitech3/level2-mrc-level2-nlp-09/blob/develop/assets/MRC_%E1%84%89%E1%85%A9%E1%86%AF%E1%84%85%E1%85%AE%E1%84%89%E1%85%A7%E1%86%AB%E1%84%87%E1%85%A1%E1%86%AF%E1%84%91%E1%85%AD_NLP9%E1%84%8C%E1%85%A9.pdf)
 
 ## MnM Team
-|김태일|문찬국|이재학|하성진|한나연|
+
+|[김태일](https://github.com/detailTales)|[문찬국](https://github.com/nonegom)|[이재학](https://github.com/wogkr810)|[하성진](https://github.com/maxha97)|[한나연](https://github.com/HanNayeoniee)|
 |:-:|:-:|:-:|:-:|:-:|
 |<a href="https://github.com/detailTales"><img src="assets/profile/ty.png" width='300px'></a>|<a href="https://github.com/nonegom"><img src="assets/profile/cg.png" width='300px'></a>|<a href="https://github.com/wogkr810"><img src="assets/profile/jh.png" width='300px'></a>|<a href="https://github.com/maxha97"><img src="assets/profile/sj.png" width='300px'></a>|<a href="https://github.com/HanNayeoniee"><img src="assets/profile/ny.png" width='300px'></a>|
 
