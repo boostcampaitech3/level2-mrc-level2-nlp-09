@@ -1,5 +1,5 @@
 # Open-Domain Question Anwering Competition - NLP 9조 (MnM)
-> KLUE MRC(Machine Reading Comprehension) dataset으로 Open-Domain Question Answering을 수행하는 task입니다.
+> MRC(Machine Reading Comprehension) dataset으로 Open-Domain Question Answering을 수행하는 task입니다.
 > 
 > 질문에 관련된 문서를 찾는 Retriever와 찾아온 문서에서 질문에 대한 정답을 찾는 Reader로 구성됩니다. 
 
